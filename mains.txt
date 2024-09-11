@@ -1,0 +1,186 @@
+import java.util.*;
+import java.util.stream.*;
+import java.util.concurrent.ThreadLocalRandom;
+
+public class Main {
+    
+    // Функция для создания случайного вещественного числа в диапазоне [min, max]
+    public static double generateRandomDouble(double min, double max) {
+        return ThreadLocalRandom.current().nextDouble(min, max);
+    }
+
+    // Функция для создания случайного целого числа в диапазоне [min, max]
+    public static int generateRandomInt(int min, int max) {
+        return ThreadLocalRandom.current().nextInt(min, max + 1);
+    }
+
+    // Функция для вычисления количества элементов, больших A
+    public static long countGreaterThan(List<Double> arr, double A) {
+        return arr.stream().filter(x -> x > A).count();
+    }
+
+    // Функция для вычисления произведения элементов после максимального по модулю элемента
+    public static double productAfterMaxAbs(List<Double> arr) {
+        if (arr.isEmpty()) return 0;
+
+        OptionalDouble maxAbsValue = arr.stream().mapToDouble(Math::abs).max();
+        if (!maxAbsValue.isPresent()) return 0;
+
+        int index = arr.indexOf(maxAbsValue.getAsDouble());
+        return arr.subList(index + 1, arr.size()).stream().reduce(1.0, (a, b) -> a * b);
+    }
+
+    // Функция для перестановки элементов
+    public static void swapElements(List<Double> arr) {
+        for (int i = 0; i < arr.size() - 1; i += 2) {
+            int tens = (int) (arr.get(i) / 10) % 10;
+            int hundreds = (int) (arr.get(i) / 100);
+            if (tens > hundreds) {
+                Collections.swap(arr, i, i + 1);
+            }
+        }
+    }
+
+    // Функция для нахождения наиболее часто встречающегося элемента
+    public static int mostFrequentElement(List<Integer> arr) {
+        return arr.stream()
+                  .collect(Collectors.groupingBy(e -> e, Collectors.counting()))
+                  .entrySet()
+                  .stream()
+                  .max(Map.Entry.comparingByValue())
+                  .get()
+                  .getKey();
+    }
+
+    // Функция для сортировки цифр числа в порядке убывания
+    public static int sortDigitsDesc(int num) {
+        char[] digits = String.valueOf(num).toCharArray();
+        Arrays.sort(digits);
+        String sortedNum = new StringBuilder(new String(digits)).reverse().toString();
+        return Integer.parseInt(sortedNum);
+    }
+
+    // Функция для нормализации числа и вывода в формате 46*10^30
+    public static void printScientificNotation(double num) {
+        if (num == 0) {
+            System.out.println("0");
+            return;
+        }
+
+        int exponent = 0;
+
+        for (; num >= 10.0; ++exponent) {
+            num /= 10.0;
+        }
+
+        for (; num < 1.0; --exponent) {
+            num *= 10.0;
+        }
+
+        System.out.printf("%.2f * 10^%d\n", num, exponent);
+    }
+
+   // Функция для ввода и проверки корректности введенного значения
+public static double inputValidNumber(Scanner scanner) {
+    String input;
+
+    for (;;) { // бесконечный цикл
+        System.out.print("Введите одно слово, содержащее только цифры: ");
+        input = scanner.nextLine();
+
+        if (input.matches("\\d+")) {
+            return Double.parseDouble(input);
+        } else {
+            System.out.println("Ошибка! Введите только цифры.");
+        }
+    }
+}
+
+    public static void main(String[] args) {
+        Locale.setDefault(Locale.forLanguageTag("ru-RU"));
+        Scanner scanner = new Scanner(System.in);
+
+        // Генерация случайного количества элементов для первого массива
+        int n1 = generateRandomInt(10, 50);
+        List<Double> array1 = new ArrayList<>();
+        for (int i = 0; i < n1; i++) {
+            array1.add(generateRandomDouble(100.0, 900.0));
+        }
+
+        System.out.println("Массив из случайных вещественных чисел (" + n1 + " элементов):");
+        array1.forEach(num -> System.out.print(num + " "));
+        System.out.println();
+
+        // Ввод числа A и обработка массива
+        double A = inputValidNumber(scanner);
+        System.out.println("Вы ввели корректное число: " + A);
+
+        long countGreaterA = countGreaterThan(array1, A);
+        System.out.println("Количество элементов, больших A: " + countGreaterA);
+
+        double productAfterMax = productAfterMaxAbs(array1);
+        System.out.print("Произведение элементов после максимального по модулю: ");
+        printScientificNotation(productAfterMax);
+
+        // Перестановка элементов массива
+        swapElements(array1);
+        System.out.println("Массив после перестановки:");
+        array1.forEach(num -> System.out.print(num + " "));
+        System.out.println();
+
+        // Генерация случайного количества элементов для второго массива
+        int n2 = generateRandomInt(15, 100);
+        List<Integer> array2 = new ArrayList<>();
+        for (int i = 0; i < n2; i++) {
+            array2.add(generateRandomInt(10, 20));
+        }
+
+        System.out.println("Массив из целых чисел (" + n2 + " элементов):");
+        array2.forEach(num -> System.out.print(num + " "));
+        System.out.println();
+
+        int mostFrequent = mostFrequentElement(array2);
+        System.out.println("Наиболее часто встречающийся элемент: " + mostFrequent);
+
+        // Новая функциональность
+        int n3 = generateRandomInt(20, 200);
+        List<Integer> array3 = new ArrayList<>();
+        for (int i = 0; i < n3; i++) {
+            array3.add(generateRandomInt(1, 10000));
+        }
+
+        System.out.println("Новый массив из случайных целых чисел (" + n3 + " элементов):");
+        array3.forEach(num -> System.out.print(num + " "));
+        System.out.println();
+
+        int initialSum = array3.stream().mapToInt(Integer::intValue).sum();
+        System.out.println("Сумма элементов исходного массива: " + initialSum);
+
+        // Меняем цифры в порядке убывания
+        array3 = array3.stream().map(Main::sortDigitsDesc).collect(Collectors.toList());
+
+        System.out.println("Массив после изменения цифр в порядке убывания:");
+        array3.forEach(num -> System.out.print(num + " "));
+        System.out.println();
+
+        // Сортировка массива в порядке убывания
+        array3.sort(Comparator.reverseOrder());
+        System.out.println("Отсортированный массив в порядке убывания:");
+        array3.forEach(num -> System.out.print(num + " "));
+        System.out.println();
+
+        int sortedSum = array3.stream().mapToInt(Integer::intValue).sum();
+        System.out.println("Сумма элементов отсортированного массива: " + sortedSum);
+
+        // Сравнение сумм и вывод результата
+        if (sortedSum > initialSum) {
+            System.out.println("Сумма элементов после сортировки больше суммы до сортировки.");
+        } else if (sortedSum < initialSum) {
+            System.out.println("Сумма элементов после сортировки меньше суммы до сортировки.");
+        } else {
+            System.out.println("Суммы элементов до и после сортировки равны.");
+        }
+
+        scanner.close();
+    }
+}
