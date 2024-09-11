@@ -1,0 +1,252 @@
+import java.util.function.Function;
+import java.util.ArrayList;
+import java.util.List;
+
+public class RootFinding {
+
+    private static final double EPSILON = 0.0001; // точность
+    private static final int MAX_ITERATIONS = 20; // максимальное количество итераций
+
+    // Определяем функцию
+    private static double f(double x) {
+        return Math.sin(x + 1) - 0.2 * x;
+    }
+
+    // Производная функции для метода Ньютона
+    private static double fPrime(double x) {
+        return Math.cos(x + 1) - 0.2;
+    }
+
+    // Вторая производная функции для оценки сходимости
+    private static double fDoublePrime(double x) {
+        return -Math.sin(x + 1);
+    }
+
+    // Функция разложения x = asin(0.2x) - 1
+    private static double func1(double x) {
+        return Math.asin(0.2 * x) - 1;
+    }
+
+    // Функция разложения x = sin(x+1) / 0.2
+    private static double func2(double x) {
+        return Math.sin(x + 1) / 0.2;
+    }
+
+    // Производная функции x = asin(0.2x) - 1
+    private static double derivativeFunc1(double x) {
+        return 0.2 / Math.sqrt(1 - Math.pow(0.2 * x, 2));
+    }
+
+    // Производная функции x = sin(x+1) / 0.2
+    private static double derivativeFunc2(double x) {
+        return Math.cos(x + 1) / 0.2;
+    }
+
+    // Метод простых итераций
+    private static boolean simpleIteration(Function<Double, Double> func, double x0, double epsilon, int maxIterations) {
+    long startTime = System.nanoTime();  // Начало измерения времени
+
+    double x = x0;
+    double lastError = 0.0;
+    double totalConvergenceRate = 0.0;
+
+    // Вывод заголовка перед началом итераций
+    System.out.printf("%5s%16s%14s%26s%20s%n", "N", "x_старое", "x_новое", "|x_новое-x_старое|", "Скорость сходимости");
+
+    for (int iteration = 0; iteration < maxIterations; ++iteration) {
+        double newX = func.apply(x);
+        double diff = Math.abs(newX - x);
+
+        if (Double.isNaN(newX) || Double.isNaN(diff)) {
+            System.out.println("Недопустимые значения, корень не найден.");
+            return false;
+        }
+
+        double currentConvergenceRate = iteration > 0 ? diff / lastError : 0.0;
+        totalConvergenceRate += currentConvergenceRate;
+        lastError = diff;
+
+        System.out.printf("%5d%15.4f%15.4f%20.4f%20.4f%n", iteration + 1, x, newX, diff, currentConvergenceRate);
+
+        if (diff < epsilon) {
+            double averageConvergenceRate = totalConvergenceRate / (iteration + 1);
+            long elapsedTime = System.nanoTime() - startTime;  // Конец измерения времени
+
+            System.out.printf("Найден корень: x = %.4f после %d итераций%n", newX, iteration + 1);
+            System.out.printf("Скорость сходимости: %.6f%n", averageConvergenceRate);
+            System.out.printf("Количество итераций всего: %d%n", iteration + 1);
+            System.out.printf("Количество времени общее: %.6f секунд%n", elapsedTime / 1e9);
+            System.out.printf("Средняя скорость сходимости: %.6f%n", averageConvergenceRate);
+
+            return true;
+        }
+
+        x = newX;
+    }
+
+    return false;
+}
+    // Проверка сходимости и вычисление корней
+    private static void checkConvergenceAndFindRoots() {
+        System.out.println("\nРешение методом простых итераций\n");
+
+        List<Double> xValues = new ArrayList<>();
+        for (double x = -10; x <= 10; x += 1) {
+            xValues.add(x);
+        }
+
+        System.out.println("Анализ метода x = asin(0.2x) - 1\n");
+        for (double x : xValues) {
+            double df1 = derivativeFunc1(x);
+
+            System.out.printf("x = %.4f: ", x);
+            if (Math.abs(df1) >= 1) {
+                System.out.println("Метод не сходится (|производная| >= 1).");
+            } else {
+                System.out.println("Метод сходится, выполняем итерации.");
+                if (!simpleIteration(RootFinding::func1, x, EPSILON, MAX_ITERATIONS)) {
+                    System.out.println("Метод не нашел корень после " + MAX_ITERATIONS + " итераций.");
+                }
+            }
+
+            System.out.println();
+        }
+
+        System.out.println("Анализ метода x = sin(x + 1) / 0.2\n");
+        for (double x : xValues) {
+            double df2 = derivativeFunc2(x);
+
+            System.out.printf("x = %.4f: ", x);
+            if (Math.abs(df2) >= 1) {
+                System.out.println("Метод не сходится (|производная| >= 1).");
+            } else {
+                System.out.println("Метод сходится, выполняем итерации.");
+                if (!simpleIteration(RootFinding::func2, x, EPSILON, MAX_ITERATIONS)) {
+                    System.out.println("Метод не нашел корень после " + MAX_ITERATIONS + " итераций.");
+                }
+            }
+
+            System.out.println();
+        }
+    }
+
+    // Метод половинного деления
+    private static void bisection(double a, double b) {
+    long startTime = System.nanoTime();  // Начало измерения времени
+
+    System.out.printf("%nМетод половинного деления для интервала [%.4f; %.4f]%n", a, b);
+    System.out.printf("%-5s%-15s%-15s%-15s%-15s%n", "N", "c", "a", "b", "|b - a|");
+
+    int n = 1;
+    double totalConvergenceRate = 0.0;
+
+    while ((b - a) / 2.0 > EPSILON) {
+        double c = (a + b) / 2.0;
+        double convergenceRate = Math.abs(b - a);
+        totalConvergenceRate += convergenceRate;
+
+        System.out.printf("%-5d%-15.4f%-15.4f%-15.4f%-15.4f%n", n, c, a, b, convergenceRate);
+
+        if (Math.abs(f(c)) < EPSILON) {
+            break;
+        }
+
+        if (f(c) * f(a) < 0) {
+            b = c;
+        } else {
+            a = c;
+        }
+
+        n++;
+    }
+
+    double averageConvergenceRate = totalConvergenceRate / n;
+    long elapsedTime = System.nanoTime() - startTime;  // Конец измерения времени
+
+    System.out.printf("Корень найден: %.4f после %d итераций.%n", (a + b) / 2.0, n);
+    System.out.printf("Скорость сходимости: %.6f%n", averageConvergenceRate);
+    System.out.printf("Количество итераций всего: %d%n", n);
+    System.out.printf("Количество времени общее: %.6f секунд%n", elapsedTime / 1e9);
+    System.out.printf("Средняя скорость сходимости: %.6f%n", averageConvergenceRate);
+}
+
+    // Метод Ньютона
+    private static void newton(double x0) {
+    long startTime = System.nanoTime();  // Начало измерения времени
+
+    System.out.printf("%nНачальное приближение x0 = %.4f%n", x0);
+    System.out.printf("%-5s%-15s%-15s%-15s%-15s%n", "N", "x", "f(x)", "f'(x)", "|f(x)/f'(x)|");
+
+    double x = x0;
+    int n = 1;
+    double totalConvergenceRate = 0.0;
+
+    while (n < MAX_ITERATIONS) {
+        double fx = f(x);
+        double fpx = fPrime(x);
+        double convergenceRate = Math.abs(fx / fpx);
+        totalConvergenceRate += convergenceRate;
+
+        if (convergenceRate < EPSILON) {
+            break;
+        }
+
+        System.out.printf("%-5d%-15.4f%-15.4f%-15.4f%-15.4f%n", n, x, fx, fpx, convergenceRate);
+
+        if (fpx == 0) {
+            System.out.println("Производная равна нулю. Метод не применим.");
+            return;
+        }
+
+        x = x - fx / fpx;
+        n++;
+    }
+
+    double averageConvergenceRate = totalConvergenceRate / n;
+    long elapsedTime = System.nanoTime() - startTime;  // Конец измерения времени
+
+    System.out.printf("Корень найден: %.4f после %d итераций.%n", x, n);
+    System.out.printf("Скорость сходимости: %.6f%n", averageConvergenceRate);
+    System.out.printf("Количество итераций всего: %d%n", n);
+    System.out.printf("Количество времени общее: %.6f секунд%n", elapsedTime / 1e9);
+    System.out.printf("Средняя скорость сходимости: %.6f%n", averageConvergenceRate);
+}
+    // Основная функция для нахождения интервалов и поиска корней
+    private static void findRoots() {
+        double Alfa = -10;
+        double Beta = 10;
+        double K = (Math.abs(Alfa) + Math.abs(Beta)) / 2;
+
+        // Сначала выполнение метода половинного деления
+        System.out.println("Решение методом половинного деления");
+        for (int q = 0; q < 10; ++q) {
+            double a = Alfa + q * (Beta - Alfa) / K;
+            double b = Alfa + (q + 1) * (Beta - Alfa) / K;
+
+            if (f(a) * f(b) < 0) {
+                bisection(a, b);
+            } else {
+                System.out.printf("%nКорней нет на интервале [%.4f; %.4f]%n", a, b);
+            }
+        }
+
+        // Теперь выполнение метода Ньютона
+        System.out.println("\nРешение методом Ньютона");
+        for (int q = 0; q < 10; ++q) {
+            double a = Alfa + q * (Beta - Alfa) / K;
+            double b = Alfa + (q + 1) * (Beta - Alfa) / K;
+            double c = (a + b) / 2.0;
+
+            if (f(a) * f(b) < 0) {
+                newton(c);
+            } else {
+                System.out.printf("%nКорней нет на интервале [%.4f; %.4f]%n", a, b);
+            }
+        }
+    }
+
+    public static void main(String[] args) {
+        findRoots();
+        checkConvergenceAndFindRoots();
+    }
+}
