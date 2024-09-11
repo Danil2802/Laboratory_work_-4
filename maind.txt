@@ -1,0 +1,166 @@
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+
+public class GameSimulation {
+
+    // Алгоритмы поведения
+    public static boolean alwaysCooperate(int roundNumber, List<Boolean> selfChoices, List<Boolean> enemyChoices) {
+        return true; // Всегда сотрудничает
+    }
+
+    public static boolean alwaysBetray(int roundNumber, List<Boolean> selfChoices, List<Boolean> enemyChoices) {
+        return false; // Всегда предает
+    }
+
+    public static boolean titForTat(int roundNumber, List<Boolean> selfChoices, List<Boolean> enemyChoices) {
+        if (roundNumber == 0) {
+            return true; // Сотрудничает в первом раунде
+        }
+        if (roundNumber > 1 && !selfChoices.get(roundNumber - 1)) {
+            return true; // Сотрудничает, если сам предал в предыдущем раунде
+        }
+        return enemyChoices.get(roundNumber - 1); // Повторяет выбор противника
+    }
+
+    public static boolean eyeForTwoEyes(int roundNumber, List<Boolean> selfChoices, List<Boolean> enemyChoices) {
+        if (roundNumber < 2) {
+            return true; // Сотрудничает в первых двух раундах
+        }
+
+        int betrayCount = 0;
+        for (int i = roundNumber - 1; i >= Math.max(0, roundNumber - 2); i--) {
+            if (!enemyChoices.get(i)) {
+                betrayCount++;
+            }
+        }
+
+        if (betrayCount >= 2) {
+            return false; // Предает после двух предательств подряд
+        }
+
+        // Проверяем, если алгоритм уже предал, нужно сотрудничать минимум 2 раунда
+        int cooperationCount = 0;
+        for (int i = roundNumber - 1; i >= 0; i--) {
+            if (selfChoices.get(i)) {
+                cooperationCount++;
+            } else {
+                break;
+            }
+        }
+
+        return cooperationCount >= 2; // Сотрудничает минимум два раунда
+    }
+
+    public static boolean tricky(int roundNumber, List<Boolean> selfChoices, List<Boolean> enemyChoices) {
+        if (roundNumber == 0) return false; // Предает в первом раунде
+        return !enemyChoices.get(roundNumber - 1); // Предает, если с ним сотрудничали, и наоборот
+    }
+
+    public static boolean vengeful(int roundNumber, List<Boolean> selfChoices, List<Boolean> enemyChoices) {
+        if (roundNumber == 0) return true; // Сотрудничает в первом раунде
+        return enemyChoices.get(roundNumber - 1); // Повторяет выбор противника
+    }
+
+    // Функция для проведения игры между двумя алгоритмами
+    public static int[] playGame(Behavior alg1, Behavior alg2, int[] numRounds) {
+        Random rand = new Random();
+        numRounds[0] = rand.nextInt(101) + 100; // Случайное число раундов от 100 до 200
+
+        List<Boolean> choices1 = new ArrayList<>();
+        List<Boolean> choices2 = new ArrayList<>();
+        int score1 = 0, score2 = 0;
+
+        for (int round = 0; round < numRounds[0]; ++round) {
+            boolean choice1 = alg1.move(round, choices1, choices2);
+            boolean choice2 = alg2.move(round, choices2, choices1);
+
+            choices1.add(choice1);
+            choices2.add(choice2);
+
+            if (choice1 && choice2) {
+                score1 += 24;
+                score2 += 24;
+            } else if (!choice1 && !choice2) {
+                score1 += 4;
+                score2 += 4;
+            } else if (choice1 && !choice2) {
+                score2 += 20;
+            } else {
+                score1 += 20;
+            }
+
+            // Вывод первых 5 и последних 5 раундов
+            if (round < 5 || round >= numRounds[0] - 5) {
+                System.out.println("Round " + (round + 1) + ": alg1 = " + (choice1 ? "Cooperate" : "Betray")
+                        + ", alg2 = " + (choice2 ? "Cooperate" : "Betray"));
+            }
+        }
+
+        return new int[]{score1, score2};
+    }
+
+    // Функция для запуска игры и сравнения алгоритмов
+    public static void runGames() {
+        Behavior[] algorithms = {
+                GameSimulation::alwaysCooperate, GameSimulation::alwaysBetray, GameSimulation::titForTat,
+                GameSimulation::eyeForTwoEyes, GameSimulation::tricky, GameSimulation::vengeful
+        };
+        String[] names = {
+                "Always Cooperate", "Always Betray", "Tit for Tat", "Eye for Two Eyes", "Tricky", "Vengeful"
+        };
+        final int numGames = 3;
+
+        int[] totalScores = new int[algorithms.length];
+        double[] overallRealScores = new double[algorithms.length];
+
+        for (int i = 0; i < algorithms.length; ++i) {
+            for (int j = i + 1; j < algorithms.length; ++j) {
+                int totalScore1 = 0, totalScore2 = 0;
+                double totalRealScore1 = 0.0, totalRealScore2 = 0.0;
+                for (int game = 0; game < numGames; ++game) {
+                    System.out.println("Starting Game " + (game + 1) + " between " + names[i] + " and " + names[j] + ":");
+                    int[] numRounds = new int[1];
+                    int[] scores = playGame(algorithms[i], algorithms[j], numRounds);
+                    int score1 = scores[0];
+                    int score2 = scores[1];
+
+                    totalScore1 += score1;
+                    totalScore2 += score2;
+                    System.out.println("Game " + (game + 1) + " between " + names[i] + " and " + names[j] + ": "
+                            + names[i] + " score: " + score1 + ", " + names[j] + " score: " + score2);
+
+                    double realScore1 = (double) score1 / numRounds[0] * 200;
+                    double realScore2 = (double) score2 / numRounds[0] * 200;
+                    totalRealScore1 += realScore1;
+                    totalRealScore2 += realScore2;
+                    System.out.println("Real scores after Game " + (game + 1) + ": " + names[i] + " score: " + realScore1
+                            + ", " + names[j] + " score: " + realScore2);
+                }
+                System.out.println("Total score for " + names[i] + " in " + numGames + " games: " + totalScore1);
+                System.out.println("Total score for " + names[j] + " in " + numGames + " games: " + totalScore2);
+                System.out.println("Total real score for " + names[i] + " in " + numGames + " games: " + totalRealScore1);
+                System.out.println("Total real score for " + names[j] + " in " + numGames + " games: " + totalRealScore2 + "\n");
+
+                totalScores[i] += totalScore1;
+                totalScores[j] += totalScore2;
+                overallRealScores[i] += totalRealScore1;
+                overallRealScores[j] += totalRealScore2;
+            }
+        }
+
+        System.out.println("Overall scores for all algorithms:");
+        for (int i = 0; i < names.length; ++i) {
+            System.out.println(names[i] + ": " + totalScores[i] + ", Overall real score: " + overallRealScores[i]);
+        }
+    }
+
+    public static void main(String[] args) {
+        runGames();
+    }
+
+    @FunctionalInterface
+    public interface Behavior {
+        boolean move(int roundNumber, List<Boolean> selfChoices, List<Boolean> enemyChoices);
+    }
+}
